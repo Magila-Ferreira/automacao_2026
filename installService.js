@@ -1,12 +1,18 @@
 import { Service } from 'node-windows';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Caminho absoluto calculado automaticamente
+const scriptPath = path.join(__dirname, 'index.js');
 
 // Criando um novo serviço
 const svc = new Service({
-	name: "AutomacaoNodeJS", // Nome do serviço no Windows
+	name: "Automacao_2026", // Nome do serviço no Windows
 	description: "Processamento de arquivos excel e geração de gráficos em PDF",
-
-	//	"C:\\amb_sw\\automacao\\index.js" 			---> 			Caminho do script usado na instalação do Guilherme
-	script: "E:\\DEV_2025\\automacao\\index.js", // Caminho do seu script principal
+	script: scriptPath,
 	nodeOptions: [
 		"--harmony",
 		"--max_old_space_size=4096" // Ajuste para uso de memória se necessário
@@ -22,3 +28,4 @@ svc.on("install", () => {
 });
 // Instalando o serviço
 svc.install();
+// "C:\\amb_sw\\automacao\\index.js"	--->	Local usado na instalação antiga do Guilherme
