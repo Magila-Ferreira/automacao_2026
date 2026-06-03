@@ -1,7 +1,7 @@
 import { inicializarPrograma } from './service/monitorarPasta.js';
 import { agendarLimpezaMensal } from './service/agendarDelecaoDB.js';
 
-(async () => {
+function main () {
     try {
 		inicializarPrograma();
 		agendarLimpezaMensal(); // Inicia o agendamento
@@ -9,4 +9,5 @@ import { agendarLimpezaMensal } from './service/agendarDelecaoDB.js';
     catch (error) {
         console.error("Erro ao iniciar o programa: ", error);
     }
-})();
+}
+main();
