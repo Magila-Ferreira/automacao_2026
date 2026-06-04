@@ -1,5 +1,5 @@
 const escalas = {
-    escala1: {nome: "ESCALA 1 - ORGANIZAÇAO DO TRABALHO"},
+    escala1: {nome: "ESCALA 1 - ORGANIZAÇÃO DO TRABALHO"},
     escala2: {nome: "ESCALA 2 - ESTILOS DE GESTÃO"},
     escala3: {nome: "ESCALA 3 - INDICADORES DE SOFRIMENTO NO TRABALHO"},
     escala4: {nome: "ESCALA 4 - DANOS RELACIONADOS AO TRABALHO"},
@@ -17,9 +17,9 @@ const fatores = {
     fator6: {nome: "FATOR 6 - Esgotamento mental", id_escala: 3},
     fator7: {nome: "FATOR 7 - Falta de reconhecimento", id_escala: 3},
     /* ESCALA 4 */
-    fator8: {nome: "FATOR 8 - Danos psicologicos", id_escala: 4},
+    fator8: {nome: "FATOR 8 - Danos psicológicos", id_escala: 4},
     fator9: {nome: "FATOR 9 - Danos sociais", id_escala: 4},
-    fator10:{nome: "FATOR 10 - Danos fisicos", id_escala: 4},
+    fator10:{nome: "FATOR 10 - Danos físicos", id_escala: 4},
 };
 
 const questoes = {
@@ -49,7 +49,7 @@ const questoes = {
     questao21: {afirmacao: "Sinto-me produtivo no meu trabalho", id_fator: 5},
     questao22: {afirmacao: "Sinto-me motivado para realizar minhas tarefas", id_fator: 5},
     questao23: {afirmacao: "Meu trabalho é cansativo", id_fator: 6},
-    questao24: {afirmacao: "Meu trabalho me safisfaz", id_fator: 6},
+    questao24: {afirmacao: "Meu trabalho me satisfaz", id_fator: 6},
     questao25: {afirmacao: "Meu trabalho me sobrecarrega", id_fator: 6},
     questao26: {afirmacao: "Mantenho boa convivência com meus colegas", id_fator: 7},
     questao27: {afirmacao: "O trabalho que realizo é qualificado pela chefia", id_fator: 7},
@@ -123,4 +123,8 @@ const pesos = {
 	questao45: { "sempre": 5, "frequentemente": 4, "às vezes": 3, "raramente": 2, "nunca": 1, },
 	questao46: { "sempre": 5, "frequentemente": 4, "às vezes": 3, "raramente": 2, "nunca": 1, },
 };
+Object.freeze(escalas);
+Object.freeze(fatores);
+Object.freeze(questoes);
+Object.freeze(pesos);
 export { escalas, fatores, questoes, pesos };
