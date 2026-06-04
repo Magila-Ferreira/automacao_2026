@@ -47,7 +47,7 @@ function normalizarDadosSetor(dadosGerenciaisSetor) {
 	}
 	return dadosNormalizados;
 }
-async function agruparDadosPorSetor(dadosGerenciaisSetor) {
+function agruparDadosPorSetor(dadosGerenciaisSetor) {
 	const agrupadoPorSetor = {}; // Objeto final a ser retornado
 
 	for (const questaoId in dadosGerenciaisSetor) { // Percorre as questões do objeto dadosGerenciaisSetor
@@ -78,7 +78,7 @@ async function agruparDadosPorSetor(dadosGerenciaisSetor) {
 	}
 	return agrupadoPorSetor;
 }
-async function estruturaDadosPorSetor(dadosPorFator) {
+function estruturaDadosPorSetor(dadosPorFator) {
 	const estrutura = {};
 
 	const dados = Object.values(dadosPorFator).flat();

@@ -1,250 +1,261 @@
-import { gerenciadorDeConexoesBD } from "../config/configBanco.js";
-import { USUARIO_BD } from "../config/configBanco.js";
+import { gerenciadorDeConexoesBD, USUARIO_BD } from '../config/configBanco.js';
 import { normalizarTexto } from '../normatizacao/dadosGerenciais.js';
+
+// Selecionar os dados do banco para o PDF
+const selecionarDadosPDF = async (nomeDoBanco, instrucao_sql, area_setor = null) => {
+    const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD);
+
+    let resultados = {};
+    try {
+        for (let fator = 1; fator <= 10; fator++) {
+            let parametros = area_setor ? [fator, area_setor] : [fator]; // Adicionar area_setor aos parâmetros
+            const [retorno_sql] = await db.query(instrucao_sql, parametros);
+
+            resultados[`fator_${fator}`] = retorno_sql.map((linha_retorno_sql) => ({
+                escala: linha_retorno_sql.escala,
+                fator: linha_retorno_sql.fator,
+                resposta: linha_retorno_sql.resposta,
+                quantidade: linha_retorno_sql.quantidade,
+                area_setor: linha_retorno_sql.area_setor || area_setor,
+            }));
+        }
+        return resultados;
+    } catch (error) {
+        console.error(`Erro ao selecionar dados para gerar PDF: ${error.message}`);
+        return {};
+    } finally {
+        await db.end();
+    }
+};
+
+// Selecionar setores
+const consultarSetores = async (nomeDoBanco, instrucao_sql) => {
+    const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD);
+    try {
+        const [areas_setores] = await db.query(instrucao_sql);
+        return areas_setores;
+    } catch (error) {
+        console.error(`Erro ao consultar setores: ${error.message}`);
+        return [];
+    } finally {
+        await db.end();
+    }
+};
 
 // Recuperar os registros do banco
 const recuperarDadosDoBanco = async (nomeDoBanco, USUARIO_BD) => {
-	const seleciona_dados_identificacao = `SELECT id, area_setor, idade, escolaridade, estadoCivil, genero FROM identificacao ORDER BY id ASC;`;
+    const seleciona_dados_identificacao = `SELECT id, area_setor, idade, escolaridade, estadoCivil, genero FROM identificacao ORDER BY id ASC;`;
 
-	const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD); // Conectar ao banco
-	try {
-		const [retorno_sql] = await db.query(seleciona_dados_identificacao);
+    const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD); // Conectar ao banco
+    try {
+        const [retorno_sql] = await db.query(seleciona_dados_identificacao);
 
-		if (!retorno_sql || retorno_sql.length === 0) { return [] };
+        if (!retorno_sql || retorno_sql.length === 0) {
+            return [];
+        }
 
-		return retorno_sql.map((linha_retorno_sql) => ({
-			id: parseInt(linha_retorno_sql.id, 10),
-			area_setor: linha_retorno_sql.area_setor?.trim(),
-			idade: parseInt(linha_retorno_sql.idade, 10),
-			escolaridade: linha_retorno_sql.escolaridade?.trim(),
-			estadoCivil: linha_retorno_sql.estadoCivil?.trim(),
-			genero: linha_retorno_sql.genero?.trim(),
-		}));
-
-	} catch (error) {
-		console.error(`Erro ao recuperar dados: ${error.message}`);
-		return [];
-	} finally {
-		db.end();
-	}
+        return retorno_sql.map((linha_retorno_sql) => ({
+            id: parseInt(linha_retorno_sql.id, 10),
+            area_setor: linha_retorno_sql.area_setor?.trim(),
+            idade: parseInt(linha_retorno_sql.idade, 10),
+            escolaridade: linha_retorno_sql.escolaridade?.trim(),
+            estadoCivil: linha_retorno_sql.estadoCivil?.trim(),
+            genero: linha_retorno_sql.genero?.trim(),
+        }));
+    } catch (error) {
+        console.error(`Erro ao recuperar dados: ${error.message}`);
+        return [];
+    } finally {
+        await db.end();
+    }
 };
-// Recupera os registros gerenciais do banco - Empresa
-const recuperarDadosGerenciaisDaEmpresa = async (nomeDoBanco, USUARIO_BD, instrucao_sql) => {
-	const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD); // Conectar ao banco
 
-	try {
-		// Retorna os registros do banco, se houver
-		const [registrosBanco] = await db.query(instrucao_sql);
-		
-		if (!registrosBanco || registrosBanco.length === 0) return [];
-
-		return registrosBanco.map((registro) => ({
-			id_fator: parseInt(registro.id_fator, 10),
-			porcentagem_risco: parseFloat(registro.porcentagem_risco),
-		}));
-
-	} catch (error) {
-		console.error(`Erro ao recuperar dados gerenciais: ${error.message}`);
-		return [];
-	} finally {
-		db.end();
-	}
-}
-// Recupera os registros gerenciais do banco
-const recuperarDadosGerenciaisDoSetor = async (nomeDoBanco, USUARIO_BD, instrucao_sql) => {
-	const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD); // Conectar ao banco
-
-	try {
-		// Retorna os registros do banco, se houver
-		const [registrosBanco] = await db.query(instrucao_sql);
-
-		if (!registrosBanco || registrosBanco.length === 0) return [];
-
-		return registrosBanco.map((registro) => ({
-			area_setor: registro.area_setor,
-			id_fator: parseInt(registro.id_fator, 10),
-			porcentagem_risco: parseFloat(registro.porcentagem_risco),
-		}));
-
-	} catch (error) {
-		console.error(`Erro ao recuperar dados gerenciais: ${error.message}`);
-		return [];
-	} finally {
-		db.end();
-	}
-}
 // Verificar quais dados do arquivo não estão registrados no banco
 const filtrarRegistrosNovos = (dadosArquivo, dadosBanco) => {
+    // Converte o id do banco para um conjunto numérico (para comparação)
+    const idBanco = new Set(dadosBanco.map((item) => parseInt(item.id, 10)));
 
-	// Converte o id do banco para um conjunto numérico (para comparação)
-	const idBanco = new Set(dadosBanco.map((item) => parseInt(item.id, 10)));
+    // Filtra os dados que não estão no banco e os retorna
+    const novosRegistros = dadosArquivo.filter((item) => {
+        if (!item.id) return false; // Ignora itens sem id
 
-	// Filtra os dados que não estão no banco e os retorna
-	const novosRegistros = dadosArquivo.filter((item) => {
-		if (!item.id) return false; // Ignora itens sem id
+        // Ignora registros se todos os campos de identificacao forem "NÃO INFORMADO"
+        const camposNaoInformados = [item.area_setor, item.escolaridade, item.estadoCivil, item.genero];
+        const todosCamposNaoInformados = camposNaoInformados.every((campo) => campo === 'NÃO INFORMADO');
+        if (todosCamposNaoInformados) return false;
 
-		// Ignora registros se todos os campos de identificacao forem "NÃO INFORMADO"
-		const camposNaoInformados = [item.area_setor, item.escolaridade, item.estadoCivil, item.genero];
-		const todosCamposNaoInformados = camposNaoInformados.every(campo => campo === "NÃO INFORMADO");
-		if (todosCamposNaoInformados) return false; 
+        const id = parseInt(item.id, 10);
+        if (isNaN(id)) return false;
+        return !idBanco.has(id);
+    });
+    return novosRegistros;
+};
 
-		const id = parseInt(item.id, 10);
-		if (isNaN(id)) return false;
-		return !idBanco.has(id);
-	});
-	return novosRegistros;
-};  
+// Recupera os registros gerenciais do banco - Empresa
+const recuperarDadosGerenciaisDaEmpresa = async (nomeDoBanco, USUARIO_BD, instrucao_sql) => {
+    const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD); // Conectar ao banco
+
+    try {
+        // Retorna os registros do banco, se houver
+        const [registrosBanco] = await db.query(instrucao_sql);
+
+        if (!registrosBanco || registrosBanco.length === 0) return [];
+
+        return registrosBanco.map((registro) => ({
+            id_fator: parseInt(registro.id_fator, 10),
+            porcentagem_risco: parseFloat(registro.porcentagem_risco),
+        }));
+    } catch (error) {
+        console.error(`Erro ao recuperar dados gerenciais: ${error.message}`);
+        return [];
+    } finally {
+        await db.end();
+    }
+};
+// Recupera os registros gerenciais do banco
+const recuperarDadosGerenciaisDoSetor = async (nomeDoBanco, USUARIO_BD, instrucao_sql) => {
+    const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD); // Conectar ao banco
+
+    try {
+        // Retorna os registros do banco, se houver
+        const [registrosBanco] = await db.query(instrucao_sql);
+
+        if (!registrosBanco || registrosBanco.length === 0) return [];
+
+        return registrosBanco.map((registro) => ({
+            area_setor: registro.area_setor,
+            id_fator: parseInt(registro.id_fator, 10),
+            porcentagem_risco: parseFloat(registro.porcentagem_risco),
+        }));
+    } catch (error) {
+        console.error(`Erro ao recuperar dados gerenciais: ${error.message}`);
+        return [];
+    } finally {
+        await db.end();
+    }
+};
+
 // Verificar quais dados gerenciais não estão inseridos na tabela risco_fator
 const filtrarRegistrosGerenciaisNovos = (dadosArquivo, dadosBanco) => {
-	// Transforma o  objeto em um array para aplicar o filtro
-	const arrayDadosArquivo = Object.entries(dadosArquivo).map(([idFator, info]) => ({
-		id_fator: parseInt(idFator, 10),
-		porcentagem_risco: parseFloat(info.risco),
-	}));
+    // Transforma o  objeto em um array para aplicar o filtro
+    const arrayDadosArquivo = Object.entries(dadosArquivo).map(([idFator, info]) => ({
+        id_fator: parseInt(idFator, 10),
+        porcentagem_risco: parseFloat(info.risco),
+    }));
 
-	// Retorna os registros diferentes do banco
-	const diferentes = arrayDadosArquivo.filter(item => {
-		const registroBanco = dadosBanco.find(registro => registro.id_fator === item.id_fator);
-		return !registroBanco || registroBanco.porcentagem_risco !== item.porcentagem_risco;
-	});
-	return diferentes;
+    // Retorna os registros diferentes do banco
+    const diferentes = arrayDadosArquivo.filter((item) => {
+        const registroBanco = dadosBanco.find((registro) => registro.id_fator === item.id_fator);
+        return !registroBanco || registroBanco.porcentagem_risco !== item.porcentagem_risco;
+    });
+    return diferentes;
 };
+
 // Verificar quais dados gerenciais não estão inseridos na tabela risco_fator
 const filtrarRegistrosGerenciaisNovosSetor = (dadosArquivo, dadosBanco) => {
-	// Mapeia os dados, renomeia a chave 'risco' e converte os tipos de dados 
-	const arrayDadosArquivo = dadosArquivo.map((info) => ({
-		area_setor: info.area_setor,
-		fator: parseInt(info.fator, 10),
-		porcentagem_risco: parseFloat(info.risco),
-	}));
+    // Mapeia os dados, renomeia a chave 'risco' e converte os tipos de dados
+    const arrayDadosArquivo = dadosArquivo.map((info) => ({
+        area_setor: info.area_setor,
+        fator: parseInt(info.fator, 10),
+        porcentagem_risco: parseFloat(info.risco),
+    }));
 
-	// Retorna os registros diferentes do banco
-	const diferentes = arrayDadosArquivo.filter(item => {
-		const registroBanco = dadosBanco.find(registro => registro.id_fator === item.fator && registro.area_setor === item.area_setor);
-		return !registroBanco || registroBanco.porcentagem_risco !== item.porcentagem_risco;
-	});
-	return diferentes;
+    // Retorna os registros diferentes do banco
+    const diferentes = arrayDadosArquivo.filter((item) => {
+        const registroBanco = dadosBanco.find((registro) => registro.id_fator === item.fator && registro.area_setor === item.area_setor);
+        return !registroBanco || registroBanco.porcentagem_risco !== item.porcentagem_risco;
+    });
+    return diferentes;
 };
-// Selecionar setores
-const consultarSetores = async (nomeDoBanco, instrucao_sql) => { 
-	const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD);
-	const [areas_setores] = await db.query(instrucao_sql);
-	return areas_setores;
-};
-// Selecionar os dados do banco para o PDF
-const selecionarDadosPDF = async (nomeDoBanco, instrucao_sql, area_setor = null) => {
-	const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD);
 
-	let resultados = {};
-	try {
-		for (let fator = 1; fator <= 10; fator++) {
-			let parametros = area_setor ? [fator, area_setor] : [fator]; // Adicionar area_setor aos parâmetros
-			const [retorno_sql] = await db.query(instrucao_sql, parametros);
-
-			resultados[`fator_${fator}`] = retorno_sql.map(linha_retorno_sql => ({
-				escala: linha_retorno_sql.escala,
-				fator: linha_retorno_sql.fator,
-				resposta: linha_retorno_sql.resposta,
-				quantidade: linha_retorno_sql.quantidade,
-				area_setor: linha_retorno_sql.area_setor || area_setor,
-			}));
-		};
-		return resultados;
-
-	} catch (error) {
-		console.error(`Erro ao selecionar dados para gerar PDF: ${error.message}`);
-		return {};
-	} finally {
-		db.end();
-	}
-};
 // Selecionar dados GERENCIAIS para salvar no Banco
 const selecionarDadosGerenciais = async (nomeDoBanco, instrucao_sql, areas_setores = null) => {
-	const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD);
-	let resultados = [];
+    const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD);
+    let resultados = [];
 
-	try {
-		if (Array.isArray(areas_setores)) {
-			for (const area_setor of areas_setores) {
-				const [retorno_sql] = await db.query(instrucao_sql, [normalizarTexto(area_setor)]);
-				const dados = retorno_sql.map(linha => ({
-					questao: linha.questao,
-					resposta: linha.resposta,
-					quantidade: linha.quantidade,
-					fator: linha.fator,
-					area_setor: normalizarTexto(linha.area_setor) || normalizarTexto(area_setor),					
-				}));
-				resultados.push(...dados); // Concatena os resultados
-			}
-		} else {
-			// Sem filtro de setor
-			const [retorno_sql] = await db.query(instrucao_sql);
-			resultados = retorno_sql.map(linha => ({
-				questao: linha.questao,
-				resposta: linha.resposta,
-				quantidade: linha.quantidade,
-				fator: linha.fator,			
-			}));
-		}
-		return resultados;
-	} catch (error) {
-		console.error(`Erro ao consultar dados GERENCIAIS. ${error.message}`);
-		return [];
-	} finally {
-		db.end();
-	}
+    try {
+        if (Array.isArray(areas_setores)) {
+            for (const area_setor of areas_setores) {
+                const [retorno_sql] = await db.query(instrucao_sql, [normalizarTexto(area_setor)]);
+                const dados = retorno_sql.map((linha) => ({
+                    questao: linha.questao,
+                    resposta: linha.resposta,
+                    quantidade: linha.quantidade,
+                    fator: linha.fator,
+                    area_setor: normalizarTexto(linha.area_setor) || normalizarTexto(area_setor),
+                }));
+                resultados.push(...dados); // Concatena os resultados
+            }
+        } else {
+            // Sem filtro de setor
+            const [retorno_sql] = await db.query(instrucao_sql);
+            resultados = retorno_sql.map((linha) => ({
+                questao: linha.questao,
+                resposta: linha.resposta,
+                quantidade: linha.quantidade,
+                fator: linha.fator,
+            }));
+        }
+        return resultados;
+    } catch (error) {
+        console.error(`Erro ao consultar dados GERENCIAIS. ${error.message}`);
+        return [];
+    } finally {
+        await db.end();
+    }
 };
 // Selecionar dados GERENCIAIS para o PDF
-const selecionarDadosGerenciaisPDF = async (nomeDoBanco, instrucao_sql, area_setor = null) => { 
-	const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD);
+const selecionarDadosGerenciaisPDF = async (nomeDoBanco, instrucao_sql, area_setor = null) => {
+    const db = gerenciadorDeConexoesBD(nomeDoBanco, USUARIO_BD);
 
-	// Caso a instrução seja para obter os setores, retorna-os
-	if (instrucao_sql.trim().toLowerCase().startsWith("select distinct area_setor")) {
-		const [setores] = await db.query(instrucao_sql);
-		return setores;
-	}
-
-	let resultados = {};
-	try { 
-		// Executa a query recebida
-		const [linhas] = await db.query(instrucao_sql);
+    let resultados = {};
+    try {
+        // Caso a instrução seja para obter os setores, retorna-os
+        if (instrucao_sql.trim().toLowerCase().startsWith('select distinct area_setor')) {
+            const [setores] = await db.query(instrucao_sql);
+            return setores;
+        }
 		
-		// Transforma o resultado em um objeto agrupado por nome do fator
-		resultados = linhas.reduce((objeto, linha) => {
-			const { area_setor, fator, escala, porcentagem_risco, id_fator } = linha;
-			const chaveEscala = linha.escala; 
+        // Executa a query recebida
+        const [linhas] = await db.query(instrucao_sql);
 
-			// Cria um array por nome do fator, se ainda não existir
-			if (!objeto[chaveEscala]) {
-				objeto[chaveEscala] = [];
-			}
+        // Transforma o resultado em um objeto agrupado por nome do fator
+        resultados = linhas.reduce((objeto, linha) => {
+            const { area_setor, fator, escala, porcentagem_risco, id_fator } = linha;
+            const chaveEscala = linha.escala;
 
-			// Adiciona os dados do risco nesse fator
-			objeto[chaveEscala].push({
-				area_setor,
-				fator,
-				escala,
-				porcentagem_risco,
-				id_fator,
-			});
-			return objeto;
-		}, {});
-		return resultados;
-	} catch (error) {
-		console.error(`Erro ao selecionar dados Gerenciais para o PDF: ${error.message}`);
-		return {};
-	}
+            // Cria um array por nome do fator, se ainda não existir
+            if (!objeto[chaveEscala]) {
+                objeto[chaveEscala] = [];
+            }
+
+            // Adiciona os dados do risco nesse fator
+            objeto[chaveEscala].push({
+                area_setor,
+                fator,
+                escala,
+                porcentagem_risco,
+                id_fator,
+            });
+            return objeto;
+        }, {});
+        return resultados;
+    } catch (error) {
+        console.error(`Erro ao selecionar dados Gerenciais para o PDF: ${error.message}`);
+        return {};
+    } finally {
+        await db.end();
+    }
 };
-
 export {
-	recuperarDadosDoBanco,
-	recuperarDadosGerenciaisDaEmpresa,
-	recuperarDadosGerenciaisDoSetor,
-	filtrarRegistrosNovos,
-	filtrarRegistrosGerenciaisNovos,
-	filtrarRegistrosGerenciaisNovosSetor,
-	consultarSetores,
-	selecionarDadosPDF, 
-	selecionarDadosGerenciais,
-	selecionarDadosGerenciaisPDF,
+    recuperarDadosDoBanco,
+    recuperarDadosGerenciaisDaEmpresa,
+    recuperarDadosGerenciaisDoSetor,
+    filtrarRegistrosNovos,
+    filtrarRegistrosGerenciaisNovos,
+    filtrarRegistrosGerenciaisNovosSetor,
+    consultarSetores,
+    selecionarDadosPDF,
+    selecionarDadosGerenciais,
+    selecionarDadosGerenciaisPDF,
 };
