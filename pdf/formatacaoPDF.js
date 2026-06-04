@@ -48,7 +48,7 @@ const formatarTextoEscala = (pdf, escala) => {
 };
 const formatarTextoSetor = (pdf, setor) => {
 	espacamentoVertical(pdf, 0.5);
-	pdf.fontSize(14).fillColor('#333').font('Arial-Negrito').text(setor, { align: 'justify' });
+	pdf.fontSize(14).fillColor('#333').font('Arial-Negrito').text(setor, { align: 'left' });
 };
 const formatarDescricaoArquivo = (pdf, descricaoArquivo) => {
 	pdf.fontSize(14).fillColor('#008').font('Arial-Negrito').text(descricaoArquivo, { align: 'center' });

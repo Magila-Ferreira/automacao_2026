@@ -46,7 +46,7 @@ const riscoPorSetorEFator = `
 	GROUP BY area_setor, id_fator, porcentagem_risco
 	ORDER BY area_setor, id_fator;
 `;
-async function acrescentaPesosEPonderacao(dadosGerenciais) {
+function acrescentaPesosEPonderacao(dadosGerenciais) {
     // Insere a propriedade peso em cada resposta
     const dadosComPesos = dadosGerenciais.map((item) => {
         const numeroQuestao = `questao${item.questao}`;
@@ -85,7 +85,7 @@ async function acrescentaPesosEPonderacao(dadosGerenciais) {
     return agrupamentoPorQuestao;
 }
 // Função principal que decide como processar os dados recebidos
-async function calcularRiscoEmpresaOuSetor(dadosGerenciais) {
+function calcularRiscoEmpresaOuSetor(dadosGerenciais) {
     if (!dadosGerenciais) return {};
 
     // Verifica se os dados estão na estrutura de um objeto e não são nulos
@@ -201,26 +201,12 @@ function calcularRiscoPorSetor(dadosPorQuestaoComSetor) {
 }
 // Calcular o risco
 function calcularRisco(dadosFator) {
-    const riscoPorFator = {};
-
-    // Desestruturação das respostas
-    Object.entries(dadosFator).forEach(({ peso, ponderacao }) => {
-        if (!riscoPorFator) {
-            riscoPorFator = [];
-        }
-    });
-
     // Total Ponderado no fator
     const totalPonderado = dadosFator.totalPonderado || 0;
 
     // Soma das ponderações com peso 5, 4 e 3 ---> REPRESENTAM RISCO
     const somaPonderacaoComRisco = dadosFator.respostas
         .filter((resposta) => [5, 4, 3].includes(resposta.peso))
-        .reduce((total, resposta) => total + resposta.ponderacao, 0);
-
-    // Soma das ponderações com peso 1 e 2 ---> SEM RISCO
-    const somaPonderacaoSemRisco = dadosFator.respostas
-        .filter((resposta) => [1, 2].includes(resposta.peso))
         .reduce((total, resposta) => total + resposta.ponderacao, 0);
 
     // Cálculo do risco: divide-se a somaPonderacaoDeRisco [pesos 5, 4 e 3] pela soma total das ponderações * 100
@@ -243,12 +229,12 @@ const disponibilizarPDFGerencial = async (nomeDoBanco, pastaSaida, nomeDaEmpresa
         let dadosGerenciaisSetor = await selecionarDadosGerenciais(nomeDoBanco, respostaPorQuestaoSetor, setoresNormalizados);
 
         // Cálculo do risco por fator
-        dadosGerenciaisEmpresa = await acrescentaPesosEPonderacao(dadosGerenciaisEmpresa); // Calcula ponderação
-        dadosGerenciaisEmpresa = await calcularRiscoEmpresaOuSetor(dadosGerenciaisEmpresa); // Calcula o risco por fator
+        dadosGerenciaisEmpresa = acrescentaPesosEPonderacao(dadosGerenciaisEmpresa); // Calcula ponderação
+        dadosGerenciaisEmpresa = calcularRiscoEmpresaOuSetor(dadosGerenciaisEmpresa); // Calcula o risco por fator
        
-        dadosGerenciaisSetor = await acrescentaPesosEPonderacao(dadosGerenciaisSetor); // Calcula ponderação
-        dadosGerenciaisSetor = await agruparDadosPorSetor(dadosGerenciaisSetor); // Agrupa os dados por setor
-        dadosGerenciaisSetor = await calcularRiscoEmpresaOuSetor(dadosGerenciaisSetor); // Calcula o risco por setor
+        dadosGerenciaisSetor = acrescentaPesosEPonderacao(dadosGerenciaisSetor); // Calcula ponderação
+        dadosGerenciaisSetor = agruparDadosPorSetor(dadosGerenciaisSetor); // Agrupa os dados por setor
+        dadosGerenciaisSetor = calcularRiscoEmpresaOuSetor(dadosGerenciaisSetor); // Calcula o risco por setor
 
         // Normalização dos dados gerenciais: EMPRESA e SETOR
         dadosGerenciaisEmpresa = normalizarDadosEmpresa(dadosGerenciaisEmpresa);         

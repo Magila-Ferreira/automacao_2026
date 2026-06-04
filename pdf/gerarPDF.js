@@ -34,7 +34,6 @@ const adicionarGrafico = async (pdf, dados, setor = null, tipoRelatorio) => {
 		atualizaPosicaoY(pdf, posicao, alturaImagem);
 		deletarImagens(caminhoImagem);
 	}
-	return posicao;
 };
 const adicionaInformacoesDoGrafico = async (pdf, dados) => {
 	// Garante espaço para as informações do gráfico
