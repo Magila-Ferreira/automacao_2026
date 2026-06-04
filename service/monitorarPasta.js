@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const inicializarPrograma = () => {
-	// service -> automacao_2026 -> DEV_2026 -> arquivosPgr/pdf
+	// service -> automacao_2026 -> DEV_2026 -> arquivosPgr	
 	const pastaEntrada = path.resolve(__dirname, '..', '..', 'arquivosPgr', 'excel_csv');
 	const pastaSaida = path.resolve(__dirname, '..', '..', 'arquivosPgr', 'pdf');
 
@@ -47,9 +47,8 @@ const inicializarPrograma = () => {
 			console.log("ARQUIVO PROCESSADO!\n");
 
 			await salvarRegistrosNoBanco(dadosTratados, nomeDoBanco, identificacaoCols, colunasDasRespostasExcel);
-			await disponibilizarPDF(nomeDoBanco, pastaSaida, nomeDaEmpresa);
-			await disponibilizarPDFGerencial(nomeDoBanco, pastaSaida, nomeDaEmpresa);
-			await alertarFimDoProcesso(); // FIM
+			await gerarOuRecuperarPDF(nomeDoBanco, pastaSaida, nomeDaEmpresa);
+
 		} catch (err) {
 			console.error(`${err}\n`);
 		}	
@@ -87,13 +86,19 @@ async function gerarPdfComOsDadosSalvosNoBanco(nomeDoBancoARecuperar, pastaSaida
 		}
 		console.log(`\n[MODO RECUPERAÇÃO] => Arquivo com prefixo RECUPERAR_ detectado.`); 
 		console.log(`Iniciando geração de PDF com os dados salvos no banco "${nomeDoBancoARecuperar}"\n`);
-		
-		await disponibilizarPDF(nomeDoBancoARecuperar, pastaSaida, nomeDaEmpresaARecuperar);
-		await disponibilizarPDFGerencial(nomeDoBancoARecuperar, pastaSaida, nomeDaEmpresaARecuperar);
-		await alertarFimDoProcesso(); // FIM
+
+		await gerarOuRecuperarPDF(nomeDoBancoARecuperar, pastaSaida, nomeDaEmpresaARecuperar);
+
 	} catch (error) {
 		console.error(`Erro ao gerar PDF com os dados RECUPERADOS do banco: ${error.message}`);
 	}
+}
+
+// Evita redundância na chamada das funções
+async function gerarOuRecuperarPDF(nomeDoBanco, pastaSaida, nomeDaEmpresa) {
+	await disponibilizarPDF(nomeDoBanco, pastaSaida, nomeDaEmpresa);
+	await disponibilizarPDFGerencial(nomeDoBanco, pastaSaida, nomeDaEmpresa);
+	await alertarFimDoProcesso(); // FIM
 }
 
 // Verifica se o arquivo é válido:
