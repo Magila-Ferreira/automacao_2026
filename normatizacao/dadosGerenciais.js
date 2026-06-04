@@ -1,12 +1,12 @@
 function normalizarDadosEmpresa(dadosGerenciais) {
-	const dadosNormalizados = [];
+	const dadosNormalizados = {};
 
 	for (const [fator, conteudo] of Object.entries(dadosGerenciais)) {
 		const { respostas, risco } = conteudo;
 
 		if (respostas && respostas.length > 0) {
 			dadosNormalizados[fator] = {
-				risco: risco.toFixed(2),
+				risco: parseFloat(risco.toFixed(2)),
 			};
 		}
 	}
@@ -41,7 +41,7 @@ function normalizarDadosSetor(dadosGerenciaisSetor) {
 			dadosNormalizados.push({
 				area_setor: normalizarTexto(area_setor),
 				fator: parseInt(idFator, 10),
-				risco: parseFloat(conteudo.risco).toFixed(2)
+				risco: parseFloat(conteudo.risco.toFixed(2))
 			});
 		}
 	}
@@ -89,7 +89,7 @@ function estruturaDadosPorSetor(dadosPorFator) {
 		}
 
 		if (!estrutura[area_setor][escala]) {
-			estrutura[area_setor][escala] = []; // Deve ser um array!
+			estrutura[area_setor][escala] = [];
 		}
 		
 		estrutura[area_setor][escala].push({
