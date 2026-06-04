@@ -67,7 +67,7 @@ const formatarPrimeiraPagina = (pdf, titulo, definicao, cabecalho, introducao) =
 
 	// Texto
 	pdf.fontSize(11).fillColor('#555').font('Arial').text(introducao, { align: 'justify' });
-}
+};
 
 // ESPAÇAMENTOS
 const espacamentoVertical = (pdf, numLinhas) => {
@@ -77,18 +77,16 @@ const espacamentoVertical = (pdf, numLinhas) => {
 		espacamento++;
 	} while (espacamento < numLinhas);
 };
-const posicaoAtualPDF = (pdf) => {
-	let x = 50;
-	let y = pdf.y + 10;
-	return { x, y };
-};
+const posicaoAtualPDF = (pdf) => ({
+	x: 50,
+	y: pdf.y + 10,
+});
 const definePosicao = (pdf, valor, posicao) => {
 	if (pdf.y > valor) {
 		pdf.addPage();
 		posicao.y = 50; // Reinicia a posição Y na nova página
 		posicao.x = 50; // Reinicia a posição X na nova página
 	}
-	return posicao;
 };
 const atualizaPosicaoY = (pdf, posicao, altura) => {
 	posicao.y += altura + 5; // Evita sobreposição

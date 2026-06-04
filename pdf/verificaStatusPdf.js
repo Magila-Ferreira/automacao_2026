@@ -1,11 +1,12 @@
 import fs from 'fs';
 
 /**
- * Verifica se o arquivo existe e se está sendo usado (aberto)
+ * Verifica se um arquivo está bloqueado por outro processo.
+ * Retorna true quando o arquivo está em uso.
  * @param {string} caminhoArquivo 
- * @returns {Promise<boolean>} true se estiver em uso
+ * @returns {boolean} true se estiver em uso
  */
-async function pdfAberto(caminhoArquivo) {
+function pdfAberto(caminhoArquivo) {
 	try {
 		// Tenta renomear o arquivo temporariamente
 		const tempPath = caminhoArquivo + '.tmp';

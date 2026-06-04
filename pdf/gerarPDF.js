@@ -4,19 +4,10 @@ import sizeOf from 'image-size';
 import path from 'path';
 import { gerarGrafico } from '../operacional/gerarGraficos.js';
 import { gerarGraficosGerenciais } from '../gerencial/gerarGraficosGerenciais.js';
-import {
-    formatarLinhasTabela,
-    formatarLinhaDivisoriaTabela,
-    formatarCabecalhoTabela,
-    formatarTextoSubTitulo,
-    formatarTextoConteudo,
-    formatarTextoEmDestaque,
-    posicaoAtualPDF,
-    definePosicao,
-    atualizaPosicaoY,
-    garantirEspaco,
-} from './formatacaoPDF.js';
 import { normalizarRespostas } from '../normatizacao/respostas.js';
+import { formatarLinhasTabela, formatarLinhaDivisoriaTabela, formatarCabecalhoTabela, formatarTextoSubTitulo,
+    formatarTextoConteudo, formatarTextoEmDestaque, posicaoAtualPDF, definePosicao, atualizaPosicaoY, garantirEspaco,
+}   from './formatacaoPDF.js';
 
 const criarPDF = (pastaDestino, nomeArquivo, tipoRelatorio) => {
     const pdf = new pacotePDF({ size: 'A4' });
@@ -33,7 +24,7 @@ const adicionarGrafico = async (pdf, dados, setor = null, tipoRelatorio) => {
     let posicao = posicaoAtualPDF(pdf);
 
     for (const caminhoImagem of localImagens) {
-        posicao = definePosicao(pdf, 500, posicao); // Define a posição da imagem
+        definePosicao(pdf, 500, posicao); // Define a posição da imagem
         const dimensoes = sizeOf(caminhoImagem); // Obtém dimensões da imagem
         const alturaImagem = dimensoes.height * (400 / dimensoes.width); // Calcula a altura da imagem
         pdf.image(caminhoImagem, posicao.x, posicao.y, { fit: [400, 700] }); // Insere imagem do gráfico
@@ -41,7 +32,7 @@ const adicionarGrafico = async (pdf, dados, setor = null, tipoRelatorio) => {
         deletarImagens(caminhoImagem);
     }
 };
-const adicionaInformacoesDoGrafico = async (pdf, dados) => {
+const adicionaInformacoesDoGrafico = (pdf, dados) => {
     // Garante espaço para as informações do gráfico
     garantirEspaco(pdf, 100);
 
@@ -58,7 +49,7 @@ const adicionaInformacoesDoGrafico = async (pdf, dados) => {
     // Total de respostas por fator
     formatarTextoEmDestaque(pdf, `TOTAL DE RESPOSTAS POR FATOR: ${totalRespostas}`);
 };
-const adicionaInformacoesDoGraficoGerencial = async (pdf, dados) => {
+const adicionaInformacoesDoGraficoGerencial = (pdf, dados) => {
     if (!Array.isArray(dados)) {
         console.error('ERRO: Esperava array, mas dados é:', typeof dados, dados);
         return;
@@ -93,9 +84,9 @@ const adicionaInformacoesDoGraficoGerencial = async (pdf, dados) => {
         const risco = parseFloat(porcentagem_risco);
         if (isNaN(risco)) continue;
 
-        const ausencia = parseFloat(100 - risco);
+        const ausencia = 100 - risco;
         const cor = obterCorRisco(risco);
-        const textoFator = fator.charAt(10).toUpperCase() + fator.slice(11).toLowerCase();
+        const textoFator = fator.split('-')[1]?.trim() ?? fator;
 
         garantirEspaco(pdf, alturaLinha); // Garante espaço para a linha
         yLinha = pdf.y;
