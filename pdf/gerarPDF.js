@@ -1,112 +1,115 @@
 import pacotePDF from 'pdfkit';
 import fs from 'fs';
-import sizeOf from "image-size";
+import sizeOf from 'image-size';
 import path from 'path';
 import { gerarGrafico } from '../operacional/gerarGraficos.js';
 import { gerarGraficosGerenciais } from '../gerencial/gerarGraficosGerenciais.js';
-import { formatarLinhasTabela, formatarLinhaDivisoriaTabela, formatarCabecalhoTabela, formatarTextoSubTitulo, formatarTextoConteudo, formatarTextoEmDestaque, posicaoAtualPDF, definePosicao, atualizaPosicaoY, garantirEspaco } from './formatacaoPDF.js';
+import {
+    formatarLinhasTabela,
+    formatarLinhaDivisoriaTabela,
+    formatarCabecalhoTabela,
+    formatarTextoSubTitulo,
+    formatarTextoConteudo,
+    formatarTextoEmDestaque,
+    posicaoAtualPDF,
+    definePosicao,
+    atualizaPosicaoY,
+    garantirEspaco,
+} from './formatacaoPDF.js';
 import { normalizarRespostas } from '../normatizacao/respostas.js';
 
 const criarPDF = (pastaDestino, nomeArquivo, tipoRelatorio) => {
-	const pdf = new pacotePDF({ size: 'A4' });
-	const caminhoArquivoPDF = path.join(pastaDestino, `${nomeArquivo} - ${tipoRelatorio}.pdf`);
-	pdf.registerFont('Arial', './assets/fonts/arial.ttf');
-	pdf.registerFont('Arial-Negrito', './assets/fonts/ARIALNB.TTF');
-	const fluxoEscrita = fs.createWriteStream(caminhoArquivoPDF);
-	pdf.pipe(fluxoEscrita);
-	return { pdf, caminhoArquivoPDF };
+    const pdf = new pacotePDF({ size: 'A4' });
+    const caminhoArquivoPDF = path.join(pastaDestino, `${nomeArquivo} - ${tipoRelatorio}.pdf`);
+    pdf.registerFont('Arial', './assets/fonts/arial.ttf');
+    pdf.registerFont('Arial-Negrito', './assets/fonts/ARIALNB.TTF');
+    const fluxoEscrita = fs.createWriteStream(caminhoArquivoPDF);
+    pdf.pipe(fluxoEscrita);
+    return { pdf, caminhoArquivoPDF };
 };
 const adicionarGrafico = async (pdf, dados, setor = null, tipoRelatorio) => {
-	let localImagens = [];
-	
-	if (tipoRelatorio === "GRAU DE RISCO PONDERADO") {
-		localImagens = await gerarGraficosGerenciais(dados, setor);
-	} else {
-		localImagens = await gerarGrafico(dados, setor);
-	}	
-	let posicao = posicaoAtualPDF(pdf);
+    const localImagens = tipoRelatorio === 'GRAU DE RISCO PONDERADO' ? await gerarGraficosGerenciais(dados, setor) : await gerarGrafico(dados, setor);
 
-	for (const caminhoImagem of localImagens) {
-		posicao = definePosicao(pdf, 500, posicao); // Define a posição da imagem
-		const dimensoes = sizeOf(caminhoImagem); // Obtém dimensões da imagem
-		const alturaImagem = dimensoes.height * (400 / dimensoes.width); // Calcula a altura da imagem
-		pdf.image(caminhoImagem, posicao.x, posicao.y, { fit: [400, 700] }); // Insere imagem do gráfico
-		atualizaPosicaoY(pdf, posicao, alturaImagem);
-		deletarImagens(caminhoImagem);
-	}
+    let posicao = posicaoAtualPDF(pdf);
+
+    for (const caminhoImagem of localImagens) {
+        posicao = definePosicao(pdf, 500, posicao); // Define a posição da imagem
+        const dimensoes = sizeOf(caminhoImagem); // Obtém dimensões da imagem
+        const alturaImagem = dimensoes.height * (400 / dimensoes.width); // Calcula a altura da imagem
+        pdf.image(caminhoImagem, posicao.x, posicao.y, { fit: [400, 700] }); // Insere imagem do gráfico
+        atualizaPosicaoY(pdf, posicao, alturaImagem);
+        deletarImagens(caminhoImagem);
+    }
 };
 const adicionaInformacoesDoGrafico = async (pdf, dados) => {
-	// Garante espaço para as informações do gráfico
-	garantirEspaco(pdf, 100);
-		
-	formatarTextoSubTitulo(pdf, `INFORMAÇÕES DO GRÁFICO (quantidade de respostas por categoria):`);
+    // Garante espaço para as informações do gráfico
+    garantirEspaco(pdf, 100);
 
-	let totalRespostas = 0;
-	const respostasCompletas = normalizarRespostas(dados);
+    formatarTextoSubTitulo(pdf, `INFORMAÇÕES DO GRÁFICO (quantidade de respostas por categoria):`);
 
-	// Itera sobre o conteúdo e quantidade das respostas completas
-	respostasCompletas.forEach(({ resposta, quantidade }) => {
-		totalRespostas += quantidade;
-		formatarTextoConteudo(
-			pdf,
-			`${resposta.charAt(0).toUpperCase() + resposta.slice(1).toLowerCase()}: ${quantidade}`
-		);
-	});
-	// Total de respostas por fator
-	formatarTextoEmDestaque(pdf, `TOTAL DE RESPOSTAS POR FATOR: ${totalRespostas}`);
+    let totalRespostas = 0;
+    const respostasCompletas = normalizarRespostas(dados);
+
+    // Itera sobre o conteúdo e quantidade das respostas completas
+    respostasCompletas.forEach(({ resposta, quantidade }) => {
+        totalRespostas += quantidade;
+        formatarTextoConteudo(pdf, `${resposta.charAt(0).toUpperCase() + resposta.slice(1).toLowerCase()}: ${quantidade}`);
+    });
+    // Total de respostas por fator
+    formatarTextoEmDestaque(pdf, `TOTAL DE RESPOSTAS POR FATOR: ${totalRespostas}`);
 };
-const adicionaInformacoesDoGraficoGerencial = async (pdf, dados) => {	
-	if (!Array.isArray(dados)) {
-		console.error("ERRO: Esperava array, mas dados é:", typeof dados, dados);
-		return;
-	}
+const adicionaInformacoesDoGraficoGerencial = async (pdf, dados) => {
+    if (!Array.isArray(dados)) {
+        console.error('ERRO: Esperava array, mas dados é:', typeof dados, dados);
+        return;
+    }
 
-	const obterCorRisco = (valor) => valor <= 40 ? '#080' : valor <= 80 ? '#aa0' : '#a00';
+    const obterCorRisco = (valor) => (valor <= 40 ? '#080' : valor <= 80 ? '#aa0' : '#a00');
 
-	const xFator = 50;
-	const xRisco = 250;
-	const xAusencia = 350;
-	const alturaLinha = 16;
+    const xFator = 50;
+    const xRisco = 250;
+    const xAusencia = 350;
+    const alturaLinha = 16;
 
-	// Garante espaço e espaçamentos para a tabela
-	pdf.y += 10;
-	garantirEspaco(pdf, 100);
-	
-	// Título da seção
-	formatarTextoSubTitulo(pdf, "INFORMAÇÕES DO GRÁFICO: ");
-	pdf.y += 5;
+    // Garante espaço e espaçamentos para a tabela
+    pdf.y += 10;
+    garantirEspaco(pdf, 100);
 
-	// Cabeçalho
-	let yLinha = pdf.y;
-	formatarCabecalhoTabela(pdf, 'Fator', 'Risco', 'Ausência de Risco', xFator, xRisco, xAusencia, yLinha);
-	pdf.y += 0.5;
+    // Título da seção
+    formatarTextoSubTitulo(pdf, 'INFORMAÇÕES DO GRÁFICO: ');
+    pdf.y += 5;
 
-	// Linha divisória da tabela
-	formatarLinhaDivisoriaTabela(pdf, xFator);
-	pdf.y += 5;
+    // Cabeçalho
+    let yLinha = pdf.y;
+    formatarCabecalhoTabela(pdf, 'Fator', 'Risco', 'Ausência de Risco', xFator, xRisco, xAusencia, yLinha);
+    pdf.y += 0.5;
 
-	// Linhas de conteúdo
-	for (const { fator, porcentagem_risco } of dados) {
-		const risco = parseFloat(porcentagem_risco);
-		if (isNaN(risco)) continue;
+    // Linha divisória da tabela
+    formatarLinhaDivisoriaTabela(pdf, xFator);
+    pdf.y += 5;
 
-		const ausencia = parseFloat(100 - risco);
-		const cor = obterCorRisco(risco);
-		const textoFator = fator.charAt(10).toUpperCase() + fator.slice(11).toLowerCase();
+    // Linhas de conteúdo
+    for (const { fator, porcentagem_risco } of dados) {
+        const risco = parseFloat(porcentagem_risco);
+        if (isNaN(risco)) continue;
 
-		garantirEspaco(pdf, alturaLinha); // Garante espaço para a linha
-		yLinha = pdf.y;
+        const ausencia = parseFloat(100 - risco);
+        const cor = obterCorRisco(risco);
+        const textoFator = fator.charAt(10).toUpperCase() + fator.slice(11).toLowerCase();
 
-		// Linhas da tabela
-		formatarLinhasTabela(pdf, textoFator, risco, ausencia, xFator, xRisco, xAusencia, yLinha, cor);
-		pdf.y += alturaLinha;
-	}
-	pdf.y += 10; // espaço após as informações do gráfico
+        garantirEspaco(pdf, alturaLinha); // Garante espaço para a linha
+        yLinha = pdf.y;
+
+        // Linhas da tabela
+        formatarLinhasTabela(pdf, textoFator, risco, ausencia, xFator, xRisco, xAusencia, yLinha, cor);
+        pdf.y += alturaLinha;
+    }
+    pdf.y += 10; // espaço após as informações do gráfico
 };
 function deletarImagens(caminhoImagem) {
-	// Aguarda o PDF processar a imagem antes de excluir
-	fs.unlink(caminhoImagem, (err) => {
-		if (err) console.error(`Erro ao excluir a imagem ${caminhoImagem}:`, err);
-	});
+    // Aguarda o PDF processar a imagem antes de excluir
+    fs.unlink(caminhoImagem, (err) => {
+        if (err) console.error(`Erro ao excluir a imagem ${caminhoImagem}:`, err);
+    });
 }
 export { criarPDF, adicionarGrafico, adicionaInformacoesDoGrafico, adicionaInformacoesDoGraficoGerencial };

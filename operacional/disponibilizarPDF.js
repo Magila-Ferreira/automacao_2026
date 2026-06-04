@@ -29,7 +29,7 @@ const respostas_setor = `
 			GROUP BY qr.resposta;`;
 
 const disponibilizarPDF = async (nomeDoBanco, pastaSaida, nomeDaEmpresa) => {
-	let tipoRelatorio = 'PORCENTAGEM DE RESPOSTAS';
+	const tipoRelatorio = 'PORCENTAGEM DE RESPOSTAS';
 	try {
 		// Selecionar dados por empresa
 		const dadosPDF = await selecionarDadosPDF(nomeDoBanco, respostas_empresa);
@@ -44,11 +44,11 @@ const disponibilizarPDF = async (nomeDoBanco, pastaSaida, nomeDaEmpresa) => {
 			dadosPDF_porSetor[area_setor] = await selecionarDadosPDF(nomeDoBanco, respostas_setor, area_setor);
 		}
 
-		// Organizar os dados por setor 					-------> Continuar aqui <-------
-		const dadosOrganizadosPorSetor = Object.entries(dadosPDF_porSetor).reduce((acumulador, [area_setor, fatores]) => {
+		// Organizar os dados por setor
+		const dadosOrganizadosPorSetor = Object.entries(dadosPDF_porSetor).reduce((acumulador, [area_setor, dadosDoSetor]) => {
 			acumulador[area_setor] = {};
 
-			Object.values(fatores).forEach((respostas) => {
+			Object.values(dadosDoSetor).forEach((respostas) => {
 				respostas.forEach(({ escala, fator, ...resto }) => {
 
 					// Iniciar a escala e o fator, caso não existam

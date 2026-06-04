@@ -2,9 +2,8 @@ import fs from "fs";
 import fetch from "node-fetch";
 import { normalizarRespostas, calcularTotalRespostas } from "../normatizacao/respostas.js"; 
 
-let numGrafico = 1;
 // Função para gerar gráfico de barras horizontal com QuickChart
-async function gerarGrafico(dadosFator, setor = null) {
+async function gerarGrafico(dadosFator) {
 	const tempoRequisicao = 10000;
 	const maximoTentativas = 5;
 	// Define a altura dinâmica baseada no número de rótulos
@@ -151,17 +150,16 @@ async function gerarGrafico(dadosFator, setor = null) {
 				}))}`;
 
 				const controlaRequisicao = new AbortController();
-				const abortaRequisicao = setTimeout(() => controlaRequisicao.abort(), tempoRequisicao);
+				const timeoutRequisicao = setTimeout(() => controlaRequisicao.abort(), tempoRequisicao);
 
 				const respostaRequisicao = await fetch(urlGrafico, { signal: controlaRequisicao.signal });
-				clearTimeout(abortaRequisicao);
+				clearTimeout(timeoutRequisicao);
 
 				if (!respostaRequisicao.ok) {
 					throw new Error(`\nErro na API: ${respostaRequisicao.statusText}`);
 				}
 
-				const bufferImagem = await respostaRequisicao.arrayBuffer();
-				const buffer = Buffer.from(bufferImagem);
+				const buffer = Buffer.from(await respostaRequisicao.arrayBuffer());
 
 				const identificador = Date.now(); // Adiciona um identificador único baseado no timestamp
 				const caminhoImagem = `assets/imagens/grafico_${identificador}_${fator.replace(/\s+/g, '_')}.png`;
@@ -169,11 +167,11 @@ async function gerarGrafico(dadosFator, setor = null) {
 				fs.writeFileSync(caminhoImagem, buffer);
 				caminhosImagens.push(caminhoImagem);
 			}
-			console.log(`✅ Gráfico ${numGrafico} gerado com sucesso!`);
-			numGrafico++;
+			console.log(`✅ Gráficos OPERACIONAIS gerados com sucesso!`);
 			return caminhosImagens;
 		} catch (error) {
-
+			console.error(error.message);
+			
 			tentativa++;
 			if (tentativa >= maximoTentativas) {
 				console.error("🚨 Todas as tentativas falharam. Abortando operação.");

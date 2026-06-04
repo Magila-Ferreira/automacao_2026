@@ -44,7 +44,7 @@ const formatarTextoSubTitulo = (pdf, subtitulo) => {
 // CABEÇALHO DAS PÁGINAS
 const formatarTextoEscala = (pdf, escala) => {
 	espacamentoVertical(pdf, 0.5);
-	pdf.fontSize(14).fillColor('#a00').font('Arial-Negrito').text(escala, { align: 'justify' });
+	pdf.fontSize(14).fillColor('#a00').font('Arial-Negrito').text(escala, { align: 'left' });
 };
 const formatarTextoSetor = (pdf, setor) => {
 	espacamentoVertical(pdf, 0.5);
